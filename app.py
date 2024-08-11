@@ -1,7 +1,10 @@
+from pathlib import Path
 import threading
 import tkinter as tk
 from PIL import Image, ImageTk
 from whisper_live.client import TranscriptionClient
+
+SCRIPT_DIR = Path(__file__).resolve().parent
 
 class TranscriptionApp:
     def __init__(self, master):
@@ -42,7 +45,7 @@ class TranscriptionApp:
 
     def create_widgets(self):
         # Settings icon
-        settings_img = Image.open("./assets/settings_icon.png")
+        settings_img = Image.open(f"{SCRIPT_DIR}/assets/settings_icon.png")
         settings_img = settings_img.resize((25, 25), 0)
         self.settings_icon = ImageTk.PhotoImage(settings_img)
         self.settings_button = tk.Button(self.master, image=self.settings_icon, command=self.open_settings)
