@@ -87,7 +87,7 @@ class TranscriptionApp:
     def open_settings(self):
         settings_window = tk.Toplevel(self.master)
         settings_window.title("Settings")
-        settings_window.geometry("300x260")
+        settings_window.geometry("300x300")
 
         tk.Label(settings_window, text="Username:").grid(row=0, column=0, sticky="e")
         username_entry = tk.Entry(settings_window)
