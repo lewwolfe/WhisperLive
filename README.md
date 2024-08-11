@@ -23,10 +23,13 @@ input from microphone and pre-recorded audio files.
 ```bash
 brew install portaudio
 
-python3 -m pip install pyaudio --no-cache-dir --config-settings="build_ext.include_dirs=/opt/homebrew/Cellar/portaudio/19.7.0/include" --config-settings="build_ext.library_dirs=/opt/homebrew/Cellar/portaudio/19.7.0/lib"
+python3 -m pip install pyaudio \
+ --no-cache-dir \
+ --config-settings="build_ext.include_dirs=/opt/homebrew/Cellar/portaudio/19.7.0/include" \
+ --config-settings="build_ext.library_dirs=/opt/homebrew/Cellar/portaudio/19.7.0/lib"
 ```
 
-_You may need to replace 19.7.0 with your PortAudio version_
+_Replace 19.7.0 with your PortAudio version_
 
 
 - Install whisper-live from pip
