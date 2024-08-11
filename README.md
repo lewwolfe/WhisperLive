@@ -13,6 +13,13 @@ input from microphone and pre-recorded audio files.
 
 ## Installation
 - Install PyAudio and ffmpeg
+
+**Linux:**
+```bash
+ bash scripts/setup.sh
+```
+
+**MacOS:**
 ```bash
  bash scripts/setup.sh
 ```

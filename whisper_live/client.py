@@ -2,7 +2,6 @@ import os
 import shutil
 import wave
 
-import logging
 import numpy as np
 import pyaudio
 import threading
@@ -23,13 +22,16 @@ class Client:
 
     def __init__(
         self,
+        username=None,
         host=None,
         port=None,
         lang=None,
         translate=False,
         model="small",
         srt_file_path="output.srt",
-        use_vad=True
+        use_vad=True,
+        create_transcript=False,
+        textbox=None
     ):
         """
         Initializes a Client instance for audio recording and streaming to a server.
@@ -44,6 +46,7 @@ class Client:
             lang (str, optional): The selected language for transcription. Default is None.
             translate (bool, optional): Specifies if the task is translation. Default is False.
         """
+        self.username = username
         self.recording = False
         self.task = "transcribe"
         self.uid = str(uuid.uuid4())
@@ -57,6 +60,8 @@ class Client:
         self.use_vad = use_vad
         self.last_segment = None
         self.last_received_segment = None
+        self.create_transcript = create_transcript
+        self.textbox = textbox
 
         if translate:
             self.task = "translate"
@@ -120,8 +125,12 @@ class Client:
 
         # Truncate to last 3 entries for brevity.
         text = text[-3:]
-        utils.clear_screen()
-        utils.print_transcript(text)
+        if self.textbox:
+            utils.clear_text_box(self.textbox)
+            utils.print_transcript_to_text_box(text, self.textbox)
+        else:
+            utils.clear_screen()
+            utils.print_transcript(text)
 
     def on_message(self, ws, message):
         """
@@ -194,6 +203,7 @@ class Client:
             json.dumps(
                 {
                     "uid": self.uid,
+                    "username": self.username,
                     "language": self.language,
                     "task": self.task,
                     "model": self.model,
@@ -253,7 +263,9 @@ class Client:
         if self.server_backend == "faster_whisper":
             if (self.last_segment):
                 self.transcript.append(self.last_segment)
-            utils.create_srt_file(self.transcript, output_path)
+
+            if self.create_transcript: 
+                utils.create_srt_file(self.transcript, output_path)
 
     def wait_before_disconnect(self):
         """Waits a bit before disconnecting in order to process pending responses."""
@@ -432,8 +444,6 @@ class TranscriptionTeeClient:
 
     def handle_ffmpeg_process(self, process, stream_type):
         print(f"[INFO]: Connecting to {stream_type} stream...")
-        stderr_thread = threading.Thread(target=self.consume_stderr, args=(process,))
-        stderr_thread.start()
         try:
             # Process the stream
             while True:
@@ -479,16 +489,6 @@ class TranscriptionTeeClient:
             )
 
         return process
-
-    def consume_stderr(self, process):
-        """
-        Consume and log the stderr output of a process in a separate thread.
-
-        Args:
-            process (subprocess.Popen): The process whose stderr output will be logged.
-        """
-        for line in iter(process.stderr.readline, b""):
-            logging.debug(f'[STDERR]: {line.decode()}')
 
     def save_chunk(self, n_audio_file):
         """
@@ -669,6 +669,7 @@ class TranscriptionClient(TranscriptionTeeClient):
     """
     def __init__(
         self,
+        username,
         host,
         port,
         lang=None,
@@ -677,9 +678,11 @@ class TranscriptionClient(TranscriptionTeeClient):
         use_vad=True,
         save_output_recording=False,
         output_recording_filename="./output_recording.wav",
-        output_transcription_path="./output.srt"
+        output_transcription_path="./output.srt",
+        create_transcript=False,
+        textbox=None
     ):
-        self.client = Client(host, port, lang, translate, model, srt_file_path=output_transcription_path, use_vad=use_vad)
+        self.client = Client(username, host, port, lang, translate, model, srt_file_path=output_transcription_path, use_vad=use_vad, create_transcript=create_transcript, textbox=textbox)
         if save_output_recording and not output_recording_filename.endswith(".wav"):
             raise ValueError(f"Please provide a valid `output_recording_filename`: {output_recording_filename}")
         if not output_transcription_path.endswith(".srt"):

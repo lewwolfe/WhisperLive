@@ -11,6 +11,7 @@ import torch
 import numpy as np
 from websockets.sync.server import serve
 from websockets.exceptions import ConnectionClosed
+from whisper_live.minecraft import Minecraft
 from whisper_live.vad import VoiceActivityDetector
 from whisper_live.transcriber import WhisperModel
 try:
@@ -168,6 +169,7 @@ class TranscriptionServer:
                     client_uid=options["uid"],
                     model=whisper_tensorrt_path,
                     single_model=self.single_model,
+                    username=options['username']
                 )
                 logging.info("Running TensorRT backend.")
             except Exception as e:
@@ -195,6 +197,7 @@ class TranscriptionServer:
                 vad_parameters=options.get("vad_parameters"),
                 use_vad=self.use_vad,
                 single_model=self.single_model,
+                username=options['username']
             )
             logging.info("Running faster_whisper backend.")
 
@@ -399,9 +402,11 @@ class ServeClientBase(object):
     SERVER_READY = "SERVER_READY"
     DISCONNECT = "DISCONNECT"
 
-    def __init__(self, client_uid, websocket):
+    def __init__(self, client_uid, websocket, username):
+        self.minecraft = Minecraft()
         self.client_uid = client_uid
         self.websocket = websocket
+        self.username = username
         self.frames = b""
         self.timestamp_offset = 0.0
         self.frames_np = None
@@ -539,6 +544,11 @@ class ServeClientBase(object):
         Returns:
             segments (list): A list of transcription segments to be sent to the client.
         """
+        try: 
+            self.minecraft.process_data(self.username, segments)
+        except Exception as e:
+            logging.error(f"[ERROR]: Sending data to minecraft: {e}")
+
         try:
             self.websocket.send(
                 json.dumps({
@@ -580,7 +590,7 @@ class ServeClientTensorRT(ServeClientBase):
     SINGLE_MODEL = None
     SINGLE_MODEL_LOCK = threading.Lock()
 
-    def __init__(self, websocket, task="transcribe", multilingual=False, language=None, client_uid=None, model=None, single_model=False):
+    def __init__(self, websocket, task="transcribe", multilingual=False, language=None, client_uid=None, model=None, single_model=False, username=None):
         """
         Initialize a ServeClient instance.
         The Whisper model is initialized based on the client's language and device availability.
@@ -597,7 +607,7 @@ class ServeClientTensorRT(ServeClientBase):
             single_model (bool, optional): Whether to instantiate a new model for each client connection. Defaults to False.
 
         """
-        super().__init__(client_uid, websocket)
+        super().__init__(client_uid, websocket, username)
         self.language = language if multilingual else "en"
         self.task = task
         self.eos = False
@@ -754,7 +764,7 @@ class ServeClientFasterWhisper(ServeClientBase):
     SINGLE_MODEL_LOCK = threading.Lock()
 
     def __init__(self, websocket, task="transcribe", device=None, language=None, client_uid=None, model="small.en",
-                 initial_prompt=None, vad_parameters=None, use_vad=True, single_model=False):
+                 initial_prompt=None, vad_parameters=None, use_vad=True, single_model=False, username=None):
         """
         Initialize a ServeClient instance.
         The Whisper model is initialized based on the client's language and device availability.
@@ -771,7 +781,7 @@ class ServeClientFasterWhisper(ServeClientBase):
             initial_prompt (str, optional): Prompt for whisper inference. Defaults to None.
             single_model (bool, optional): Whether to instantiate a new model for each client connection. Defaults to False.
         """
-        super().__init__(client_uid, websocket)
+        super().__init__(client_uid, websocket, username)
         self.model_sizes = [
             "tiny", "tiny.en", "base", "base.en", "small", "small.en",
             "medium", "medium.en", "large-v2", "large-v3",
@@ -943,6 +953,7 @@ class ServeClientFasterWhisper(ServeClientBase):
 
         if len(segments):
             self.send_transcription_to_client(segments)
+            
 
     def speech_to_text(self):
         """

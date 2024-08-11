@@ -3,18 +3,29 @@ import textwrap
 import scipy
 import ffmpeg
 import numpy as np
-
+import tkinter as tk
 
 def clear_screen():
     """Clears the console screen."""
     os.system("cls" if os.name == "nt" else "clear")
 
+def clear_text_box(textbox):
+    """Clears the textbox."""
+    textbox.delete(1.0, tk.END)
 
+# change this to out this to the mc server
 def print_transcript(text):
     """Prints formatted transcript text."""
     wrapper = textwrap.TextWrapper(width=60)
     for line in wrapper.wrap(text="".join(text)):
         print(line)
+
+def print_transcript_to_text_box(text, textbox):
+    """Prints formatted transcript text."""
+    wrapper = textwrap.TextWrapper(width=50)
+    for line in wrapper.wrap(text="".join(text)):
+        textbox.insert(tk.END, line + "\n")
+        textbox.see(tk.END)
 
 
 def format_time(s):
