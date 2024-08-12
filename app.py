@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 import threading
 import tkinter as tk
 from PIL import Image, ImageTk
