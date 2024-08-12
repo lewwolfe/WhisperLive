@@ -1,10 +1,16 @@
 from pathlib import Path
+import sys
 import threading
 import tkinter as tk
 from PIL import Image, ImageTk
 from whisper_live.client import TranscriptionClient
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+
+if getattr(sys, 'frozen', False):
+    SCRIPT_DIR = Path(sys._MEIPASS)  # Stand-alone executable
+else:
+    SCRIPT_DIR = Path(__file__).resolve().parent
+
 
 class TranscriptionApp:
     def __init__(self, master):
