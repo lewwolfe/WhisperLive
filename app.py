@@ -4,7 +4,9 @@ import tkinter as tk
 from PIL import Image, ImageTk
 from whisper_live.client import TranscriptionClient
 
-SCRIPT_DIR = Path(__file__).resolve().parent
+# Get the current script directory, works in standalone executables and as .py
+SCRIPT_DIR = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
+
 
 class TranscriptionApp:
     def __init__(self, master):
