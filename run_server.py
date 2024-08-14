@@ -1,3 +1,5 @@
+from pathlib import Path
+import sys
 import argparse
 import os
 
@@ -29,6 +31,29 @@ if __name__ == "__main__":
                         action='store_true',
                         help='Set this if every connection should instantiate its own model. Only relevant for custom model, passed using -trt or -fw.')
     args = parser.parse_args()
+
+    # If running with faster_whisper backend and running as a stand-alone executable
+    if args.backend == "faster_whisper" and getattr(sys, '_MEIPASS', False):
+            # Import the original VAD (Voice Activity Detection) model class and module
+            from faster_whisper.vad import SileroVADModel
+            import faster_whisper.vad
+
+            # Determine the directory where the script is running. If the script is run in a frozen environment
+            # (e.g., a standalone executable created by PyInstaller), `_MEIPASS` will give the correct directory.
+            # Otherwise, it will default to the script's directory.
+            script_dir = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
+
+            def _get_vad_model():
+                """Returns the VAD model instance."""
+                # Construct the path to the VAD model file within the 'assets' directory of the script.
+                path = script_dir / "assets" / "silero_vad.onnx"
+                # Return an instance of the SileroVADModel using the specified path.
+                return SileroVADModel(path)
+
+            # Monkey patch the `get_vad_model` function in the `faster_whisper.vad` module.
+            # This replaces the original `get_vad_model` with our custom `_get_vad_model` function,
+            # ensuring that the correct VAD model is loaded from the specified location.
+            faster_whisper.vad.get_vad_model = _get_vad_model
 
     if args.backend == "tensorrt":
         if args.trt_model_path is None:
