@@ -3,6 +3,9 @@ import sys
 import argparse
 import os
 
+# Workaround for DLL PyTorch Issues
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', '-p',
@@ -30,14 +33,17 @@ if __name__ == "__main__":
     parser.add_argument('--no_single_model', '-nsm',
                         action='store_true',
                         help='Set this if every connection should instantiate its own model. Only relevant for custom model, passed using -trt or -fw.')
+    parser.add_argument('--mc-host', '-mch',
+                        type=str,
+                        default="localhost",
+                        help="Minecraft Plugin Host.")
+    parser.add_argument('--mc-port', '-mcp',
+                        type=int,
+                        default=9999,
+                        help="Minecraft Plugin Port.")
     args = parser.parse_args()
-
     # If running with faster_whisper backend and running as a stand-alone executable
     if args.backend == "faster_whisper" and getattr(sys, '_MEIPASS', False):
-        # Workaround for DLL PyTorch Issues
-        import os
-        os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
-
         # Fix paths in VAD
         # Import the original VAD (Voice Activity Detection) model class and module
         from faster_whisper.vad import SileroVADModel
@@ -68,7 +74,7 @@ if __name__ == "__main__":
         os.environ["OMP_NUM_THREADS"] = str(args.omp_num_threads)
 
     from whisper_live.server import TranscriptionServer
-    server = TranscriptionServer()
+    server = TranscriptionServer(args.mc_host, args.mc_port)
     server.run(
         "0.0.0.0",
         port=args.port,

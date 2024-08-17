@@ -144,14 +144,16 @@ class BackendType(Enum):
         return self == BackendType.TENSORRT
 
 
-class TranscriptionServer:
+class TranscriptionServer():
     RATE = 16000
 
-    def __init__(self):
+    def __init__(self, mc_host, mc_port):
         self.client_manager = ClientManager()
         self.no_voice_activity_chunks = 0
         self.use_vad = True
         self.single_model = False
+        self.mc_host = mc_host
+        self.mc_port = mc_port
 
     def initialize_client(
         self, websocket, options, faster_whisper_custom_model_path,
@@ -197,7 +199,9 @@ class TranscriptionServer:
                 vad_parameters=options.get("vad_parameters"),
                 use_vad=self.use_vad,
                 single_model=self.single_model,
-                username=options['username']
+                username=options['username'],
+                mc_host=self.mc_host,
+                mc_port=self.mc_port
             )
             logging.info("Running faster_whisper backend.")
 
@@ -402,8 +406,8 @@ class ServeClientBase(object):
     SERVER_READY = "SERVER_READY"
     DISCONNECT = "DISCONNECT"
 
-    def __init__(self, client_uid, websocket, username):
-        self.minecraft = Minecraft()
+    def __init__(self, client_uid, websocket, username, mc_host, mc_port):
+        self.minecraft = Minecraft(host=mc_host, port=mc_port)
         self.client_uid = client_uid
         self.websocket = websocket
         self.username = username
@@ -764,7 +768,7 @@ class ServeClientFasterWhisper(ServeClientBase):
     SINGLE_MODEL_LOCK = threading.Lock()
 
     def __init__(self, websocket, task="transcribe", device=None, language=None, client_uid=None, model="small.en",
-                 initial_prompt=None, vad_parameters=None, use_vad=True, single_model=False, username=None):
+                 initial_prompt=None, vad_parameters=None, use_vad=True, single_model=False, username=None, mc_host="localhost", mc_port=9999):
         """
         Initialize a ServeClient instance.
         The Whisper model is initialized based on the client's language and device availability.
@@ -781,7 +785,7 @@ class ServeClientFasterWhisper(ServeClientBase):
             initial_prompt (str, optional): Prompt for whisper inference. Defaults to None.
             single_model (bool, optional): Whether to instantiate a new model for each client connection. Defaults to False.
         """
-        super().__init__(client_uid, websocket, username)
+        super().__init__(client_uid, websocket, username, mc_host, mc_port)
         self.model_sizes = [
             "tiny", "tiny.en", "base", "base.en", "small", "small.en",
             "medium", "medium.en", "large-v2", "large-v3",

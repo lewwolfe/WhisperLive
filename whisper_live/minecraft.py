@@ -4,7 +4,7 @@ import requests
 import json
 
 class Minecraft:
-    def __init__(self, host="localhost", port=5000):
+    def __init__(self, host, port):
         self.url = f"http://{host}:{port}/transcript/"
         self.last_words = []
         logging.basicConfig(level=logging.ERROR)
